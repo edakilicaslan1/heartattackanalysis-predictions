@@ -1,0 +1,133 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("ignore")
+df = pd.read_csv("/kaggle/input/heart-attack-analysis-prediction-dataset/heart.csv")
+#Understanding the dataset
+df.head()
+df.tail()
+df.info()
+df.describe().T
+df.ndim
+df.columns
+df.output.value_counts()
+df.sex.value_counts()
+df.isnull().values.any()
+df.shape
+df.hist(figsize=(25, 30), bins=50, xlabelsize=10, ylabelsize=10)
+plt.show()
+df.hist(figsize=(25, 30), bins=50, xlabelsize=10, ylabelsize=10)
+plt.show()
+# 0 -> typical angina
+# 1 -> atypical angina
+# 2 -> non-anginal pain
+# 3 -> asymptomatic
+df.restecg.value_counts()
+# 0 -> normal
+# 1 -> having ST-T wave abnormality
+# 2 -> showing probable or definite left ventricular hypertrophy by Estes' criteria
+#Visualization
+df["output"].value_counts().plot.barh();
+(df['restecg'].value_counts().plot.barh().set_title('Resting electrocardiographic results'));
+(df['cp'].value_counts().plot.barh().set_title('Chest pain levels'));
+sns.barplot(x="cp",y=df.cp.index,data=df);
+sns.barplot(x='restecg',y=df.restecg.index,data=df);
+sns.distplot(df["age"]);
+sns.displot(df["trtbps"]);
+sns.displot(x = df["chol"], y = df["age"]);
+sns.scatterplot(x="age",y="chol",data=df);
+plt.figure(figsize=(20,6))
+sns.heatmap(df.corr(),annot=True,cmap="PuBuGn")
+#Importing libraries
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split
+from sklearn.metrics import confusion_matrix,accuracy_score
+#Splitting the dataset as train and test
+x = df.drop(['output'],axis = 1)
+y = df['output']
+x_train,x_test,y_train,y_test = train_test_split(x,y,test_size=0.30,random_state=42)
+print(f'Shape of train set -> {x_train.shape},{y_train.shape}')
+print(f'Shape of test set -> {x_test.shape},{y_test.shape}')
+#1- Predicting with Logistic Regression algorithm
+log_model = LogisticRegression(solver = 'liblinear').fit(x_train,y_train)
+log_model.coef_
+log_model.intercept_
+y_pred = log_model.predict(x_test)
+log_model_matrixs = confusion_matrix(y_test,y_pred)
+log_model_score = accuracy_score(y_test,y_pred)
+#Model Tuning 
+log_model_ = LogisticRegression()
+log_model_params = {"penalty" : ["l1", "l2", "elasticnet", "none"],
+                    "solver" : ["newton-cg", "lbfgs", "liblinear", "sag", "saga"],
+                    "C" : np.arange(1,10)}
+log_cv_model =GridSearchCV(log_model_,log_model_params,cv=10).fit(x_train,y_train)
+log_cv_model.best_score_
+log_cv_model.best_params_
+log_tuned = LogisticRegression(C = 3,penalty = 'l2',solver= 'lbfgs',random_state = 1,
+                              n_jobs = -1,verbose = 2).fit(x_train,y_train)
+y_pred_ = log_tuned.predict(x_test)
+log_model_score_ = accuracy_score(y_test,y_pred_)
+log_model_matrixs_ = confusion_matrix(y_test,y_pred_)
+#2. Predicting with Support Vector Machines
+x_train,x_test,y_train,y_test = train_test_split(x, y, test_size = 0.30,random_state = 42)
+svm_model = SVC(kernel="linear").fit(x_train,y_train)
+svm_pred = svm_model.predict(x_test)
+svm_model_score = accuracy_score(svm_pred,y_test)
+#Model Tuning
+svm = SVC()
+svm_params = {"C":np.arange(1,10),"kernel":["linear","rbf"]}
+svm_cv_model = GridSearchCV(svm,svm_params,cv=5,n_jobs=-1,verbose=2).fit(x_train,y_train)
+svm_cv_model.best_params_
+svm_tuned = SVC(C=8,kernel="linear").fit(x_train,y_train)
+y_pred = svm_model.predict(x_test)
+accuracy_score(y_test,y_pred)
+#3. Predicting with Decision Tree
+x_train,x_test,y_train,y_test = train_test_split(x,y,test_size=0.30,random_state=42)
+cart_model = DecisionTreeClassifier().fit(x_train,y_train)
+y_pred = cart_model.predict(x_test)
+accuracy_score(y_test,y_pred)
+#Model Tuning
+cart = DecisionTreeClassifier()
+cart_params = {"max_depth":[1,3,5,8,10],
+              "min_samples_split":[2,3,5,10,20]}
+cart_cv_model = GridSearchCV(cart,cart_params,cv=10,n_jobs=-1,verbose=2).fit(x_train,y_train)
+cart_cv_model.best_params_
+cart_tuned = DecisionTreeClassifier(max_depth=3,min_samples_split=20).fit(x_train,y_train)
+y_pred = cart_tuned.predict(x_test)
+accuracy_score(y_test,y_pred)
+#4. Predicting with Random Forest
+rf_model = RandomForestClassifier().fit(x_train,y_train)
+y_pred = rf_model.predict(x_test)
+accuracy_score(y_test,y_pred)
+#Model Tuning
+rf = RandomForestClassifier()
+rf_params = {"n_estimators":[100,500,1000],
+            "max_features":[3,5,8],
+            "min_samples_split":[2,5,10]}
+rf_cv_model = GridSearchCV(rf,rf_params,cv=10,n_jobs=-1,verbose=2).fit(x_train,y_train)
+rf_cv_model.best_params_
+rf_tuned = RandomForestClassifier(n_estimators=100,max_features=3,min_samples_split=2).fit(x_train,y_train)
+y_pred = rf_tuned.predict(x_test)
+accuracy_score(y_test,y_pred)
+#5. Predicting with Gradient Boosting Machines
+gbm_model = GradientBoostingClassifier().fit(x_train,y_train)
+y_pred = gbm_model.predict(x_test)
+accuracy_score(y_test,y_pred)
+#Model Tuning
+gbm = GradientBoostingClassifier()
+gbm_params = {"learning_rate":[0.1,0.01,0.001,0.05],
+             "n_estimators":[100,500,1000],
+             "max_depth":[2,5,8]}
+gbm_cv_model = GridSearchCV(gbm,gbm_params,cv=10,n_jobs=-1,verbose=2).fit(x_train,y_train)
+gbm_cv_model.best_params_
+gbm_tuned=GradientBoostingClassifier(learning_rate=0.01,
+                                     n_estimators=500,max_depth=2).fit(x_train,y_train)
+y_pred = gbm_tuned.predict(x_test)
+accuracy_score(y_test,y_pred)
